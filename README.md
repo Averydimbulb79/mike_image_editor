@@ -1,203 +1,110 @@
-# Mike Image Editor
+# Mike Image Editor (MIE)
 
-Browser-based multi-layer image editor with Google Fonts, text effects, shapes, and export tools.
+Layer-first image editor with typography tools, shapes, and multi-layer composition.
 
-Built as a fast, local-first alternative to Pixlr, with a strong focus on typography, clean UI, and practical editing workflows.
-
----
+Part of the Mike Editor ecosystem, designed with a consistent multi-ribbon interface and document-style workflow.
 
 ## Live Preview
 
 https://averydimbulb79.github.io/mike_image_editor/
 
----
-
 ## Overview
 
-Mike Image Editor is designed to behave more like a structured design tool rather than a raw image editor.
+Mike Image Editor (MIE) is a browser-based design and image editing tool built using the Mike Editor interface system.
 
-It prioritises:
+It follows the same structured layout and interaction model as Mike Markdown Editor, ensuring consistency across all Mike tools.
 
-- clean layout workflows  
-- strong text styling capabilities  
-- reliable layer management  
-- predictable export output  
-- fast, no-install browser usage  
+The editor focuses on:
 
-This project aims to evolve into a full-featured design and light image editing platform that is faster, cleaner, and more focused than existing browser editors.
+- layered visual composition
+- strong typography control
+- clean, structured UI
+- fast local-first performance
+- reliable export output
 
----
+This is not intended to be a bloated Photoshop clone.
+
+It is designed to be a fast, precise, and practical editor for real work.
 
 ## Current Version
 
-**v1.0 — Core Foundation**
+v1.0, Core Foundation
 
----
+## Current Features in v1.0
 
-## Current Features (v1.0)
+- Layer-based canvas system
+- Text layers with Google Fonts
+- Text fill, outline, and shadow
+- Shape tools including rectangle, circle, line, and arrow
+- Image upload
+- Move, resize, and rotate objects
+- Layer panel with reorder, hide, lock, and rename
+- Duplicate and delete layers
+- Canvas size and background control
+- Export as PNG
+- Save and load project as JSON
+- Undo and redo
 
-- Layer-based canvas editor  
-- Add and edit text layers  
-- Google Fonts integration  
-- Text fill, outline, and shadow effects  
-- Basic shapes: rectangle, circle, line, arrow  
-- Image upload  
-- Move, resize, rotate objects  
-- Layer panel (reorder, hide, lock, rename)  
-- Duplicate and delete layers  
-- Canvas resize and background color  
-- Export as PNG  
-- Save and load project (JSON)  
-- Undo and redo  
+## Interface System
 
----
+All Mike Editors share a unified interface:
+
+- Topbar with branding and quick actions
+- Ribbon tabs such as Home, Insert, View, and Export
+- Structured ribbon tool groups
+- Multi-pane workspace
+- Sidebar for structure or layers
+- Status bar for system feedback
 
 ## Roadmap
 
-The project is structured into progressive phases and version milestones:
+### Phase 1, Core Canvas Foundation
+v1.x
 
-### Phase 1 — Core Canvas Foundation
-**v1.x**
+### Phase 2, Professional Design Workflow
+v2.x
 
-- Base editor (v1.0 complete)  
-- Stabilisation and bug fixes  
-- UI refinements  
-- Performance improvements  
+### Phase 3, Advanced Composition Engine
+v3.x
 
----
+### Phase 4, Image Editing Layer
+v4.x
 
-### Phase 2 — Professional Design Workflow
-**v2.x**
+### Phase 5, Smart Effects and Automation
+v5.x
 
-- Zoom controls and pan  
-- Rulers, guides, snapping  
-- Smart alignment tools  
-- Multi-select and grouping  
-- Rounded shapes, polygons  
-- Gradient fills  
-- Blend modes  
-- Improved color picker  
-- Keyboard shortcuts  
-- History panel  
+### Phase 6, AI-Assisted Studio
+v6.x
 
----
+### Phase 7, Power User Features
+v7.x
 
-### Phase 3 — Advanced Composition Engine
-**v3.x**
-
-- Artboards / multiple pages  
-- Layer folders  
-- Clipping and alpha masks  
-- Effect stacks  
-- Text presets and brand kits  
-- Advanced typography controls  
-- Curved and warped text  
-- Numeric transform controls  
-- Template system  
-
----
-
-### Phase 4 — Image Editing Layer
-**v4.x**
-
-- Crop and resize tools  
-- Image adjustments (brightness, contrast, etc.)  
-- Filters and blur/sharpen  
-- Brush, erase, clone, heal tools  
-- Selection tools (lasso, marquee, magic select)  
-- Non-destructive adjustments  
-
----
-
-### Phase 5 — Smart Effects and Automation
-**v5.x**
-
-- Effect presets  
-- Text style presets  
-- Asset and texture libraries  
-- Quick actions panel  
-- Batch export and resize  
-- Export presets (social, print, etc.)  
-
----
-
-### Phase 6 — AI-Assisted Studio
-**v6.x**
-
-- Background removal  
-- Object removal  
-- Generative fill and expand  
-- Image upscaling  
-- AI layout and font suggestions  
-- Prompt-based asset generation  
-
----
-
-### Phase 7 — Power User and Production Features
-**v7.x**
-
-- PSD import (partial)  
-- SVG import/export  
-- PDF export  
-- Print-ready output  
-- Autosave and recovery  
-- Custom shortcuts  
-- Vector path tools  
-- Component systems  
-- Optional cloud sync  
-
----
-
-### Phase 8 — Competitive Superiority Layer
-**v8.x**
-
-- Advanced typography system  
-- Template ecosystem  
-- Superior layer management  
-- Export reliability improvements  
-- Performance optimisation  
-- Education and creator workflows  
-
----
-
-## Project Structure
-- /index.html
-- /css/
-- /js/
-- /assets/
-- /docs/
-
-
----
+### Phase 8, Competitive Superiority
+v8.x
 
 ## Tech Stack
 
-- HTML  
-- CSS  
-- JavaScript  
-- Canvas API / Fabric.js (planned)  
-- IndexedDB (planned for local storage)  
-
----
+- HTML
+- CSS
+- JavaScript
+- Canvas API or Fabric.js later
+- IndexedDB later for local storage
 
 ## Design Philosophy
 
-- Local-first, no forced login  
-- Clean and minimal UI  
-- Strong typography support  
-- Layer workflow over gimmicks  
-- Non-destructive editing where possible  
-- Reliable export above all  
-
----
+- Consistent multi-ribbon interface
+- Local-first, no forced login
+- Clean UI, no clutter
+- Typography-first design
+- Layer-based workflow
+- Reliable export
 
 ## License
 
 MIT License
 
----
-
 ## Status
 
-Active development  
-Currently in **v1.0 (Phase 1)**  
+Active development
+
+Currently in v1.0 under Phase 1
