@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mike Image Editor Phase 1</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+  <style>
+    :root {
+      --bg: #101216;
+      --panel: #171a20;
+      --panel-2: #1d2129;
+      --panel-3: #252b36;
+      --text: #eef2f7;
+      --muted: #9ca8b8;
+      --accent: #5ea0ff;
+      --border: #2a3140;
+      --danger: #ff6b6b;
+      --ok: #51cf66;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+    .app {
+      display: grid;
+      grid-template-rows: 54px 1fr 34px;
+      height: 100vh;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    .title {
+      font-weight: 700;
+      margin-right: 12px;
+      padding-right: 14px;
+      border-right: 1px solid var(--border);
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 72px 1fr 360px;
+      min-height: 0;
+    }
+    .toolbar, .sidebar {
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      min-height: 0;
+    }
+    .sidebar {
+      border-right: none;
+      border-left: 1px solid var(--border);
+      display: grid;
+      grid-template-rows: 260px 1fr;
+    }
+    .toolbar {
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+    }
+    .tool-btn, .btn {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.16s ease;
+    }
+    .tool-btn {
+      width: 52px;
+      height: 42px;
+      font-size: 18px;
+    }
+    .tool-btn:hover, .btn:hover, select:hover, input:hover {
+      border-color: var(--accent);
+    }
+    .btn {
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+    .btn.danger { border-color: #633; color: #ffd2d2; }
+    .btn.ok { border-color: #264b30; color: #d9ffe2; }
+    .canvas-wrap {
+      position: relative;
+      background:
+        linear-gradient(45deg, #171b22 25%, transparent 25%),
+        linear-gradient(-45deg, #171b22 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #171b22 75%),
+        linear-gradient(-45deg, transparent 75%, #171b22 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+      overflow: auto;
+      padding: 28px;
+    }
+    .canvas-stage {
+      width: max-content;
+      margin: 0 auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+      background: #fff;
+    }
+    .panel {
+      min-height: 0;
+      overflow: auto;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel:last-child { border-bottom: none; }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel-2);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .panel-body { padding: 12px 14px; }
+    .control-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .field label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    input, select, textarea {
+      width: 100%;
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font: inherit;
+    }
+    input[type="color"] {
+      padding: 3px;
+      min-height: 38px;
+    }
+    input[type="range"] {
+      padding: 0;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .row > * { flex: 1; }
+    .layers {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .layer-item {
+      padding: 10px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      cursor: pointer;
+    }
+    .layer-item.active {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(94,160,255,.35);
+    }
+    .layer-name {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .layer-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .layer-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .layer-actions button {
+      padding: 4px 8px;
+      min-width: auto;
+      font-size: 12px;
+    }
+    .statusbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+    }
+    .small {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .section-title {
+      margin: 10px 0 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="title">Mike Image Editor • Phase 1</div>
+      <button class="btn" id="newCanvasBtn">New Canvas</button>
+      <button class="btn" id="saveProjectBtn">Save Project</button>
+      <button class="btn" id="loadProjectBtn">Load Project</button>
+      <button class="btn ok" id="exportPngBtn">Export PNG</button>
+      <button class="btn" id="duplicateBtn">Duplicate</button>
+      <button class="btn danger" id="deleteBtn">Delete</button>
+      <button class="btn" id="bringFrontBtn">Bring Front</button>
+      <button class="btn" id="sendBackBtn">Send Back</button>
+      <button class="btn" id="undoBtn">Undo</button>
+      <button class="btn" id="redoBtn">Redo</button>
+      <input type="file" id="projectFileInput" accept=".json" class="hidden" />
+      <input type="file" id="imageInput" accept="image/*" class="hidden" />
+    </div>
+
+    <div class="layout">
+      <div class="toolbar">
+        <button class="tool-btn" title="Select" data-tool="select">↖</button>
+        <button class="tool-btn" title="Add Text" id="addTextBtn">T</button>
+        <button class="tool-btn" title="Upload Image" id="addImageBtn">🖼</button>
+        <button class="tool-btn" title="Rectangle" id="addRectBtn">▭</button>
+        <button class="tool-btn" title="Circle" id="addCircleBtn">◯</button>
+        <button class="tool-btn" title="Line" id="addLineBtn">／</button>
+        <button class="tool-btn" title="Arrow" id="addArrowBtn">➜</button>
+      </div>
+
+      <div class="canvas-wrap" id="canvasWrap">
+        <div class="canvas-stage">
+          <canvas id="editorCanvas" width="1200" height="800"></canvas>
+        </div>
+      </div>
+
+      <div class="sidebar">
+        <div class="panel">
+          <div class="panel-header">Layers <span class="small" id="layerCount">0</span></div>
+          <div class="panel-body">
+            <div class="layers" id="layersList"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">Properties</div>
+          <div class="panel-body">
+            <div class="section-title">Canvas</div>
+            <div class="row">
+              <div class="field">
+                <label>Width</label>
+                <input type="number" id="canvasWidth" value="1200" min="100" max="5000" />
+              </div>
+              <div class="field">
+                <label>Height</label>
+                <input type="number" id="canvasHeight" value="800" min="100" max="5000" />
+              </div>
+            </div>
+            <div class="field">
+              <label>Background</label>
+              <input type="color" id="canvasBg" value="#ffffff" />
+            </div>
+            <button class="btn" id="applyCanvasBtn">Apply Canvas</button>
+
+            <div class="section-title">Selected Object</div>
+            <div id="noSelection" class="small">Select an object to edit its properties.</div>
+            <div id="selectionFields" class="hidden">
+              <div class="field" id="textContentField">
+                <label>Text</label>
+                <textarea id="textValue"></textarea>
+              </div>
+              <div class="field" id="fontField">
+                <label>Google Font</label>
+                <select id="fontFamily">
+                  <option>Roboto</option>
+                  <option>Inter</option>
+                  <option>Playfair Display</option>
+                  <option>Montserrat</option>
+                  <option>Oswald</option>
+                  <option>Lora</option>
+                  <option>Bebas Neue</option>
+                  <option>Merriweather</option>
+                  <option>Nunito</option>
+                  <option>Anton</option>
+                  <option>DM Serif Display</option>
+                  <option>Cinzel</option>
+                  <option>Pacifico</option>
+                  <option>Abril Fatface</option>
+                </select>
+              </div>
+              <div class="control-grid">
+                <div class="field">
+                  <label>Fill</label>
+                  <input type="color" id="fillColor" value="#000000" />
+                </div>
+                <div class="field">
+                  <label>Opacity</label>
+                  <input type="range" id="opacity" min="0" max="1" step="0.01" value="1" />
+                </div>
+                <div class="field">
+                  <label>Stroke</label>
+                  <input type="color" id="strokeColor" value="#000000" />
+                </div>
+                <div class="field">
+                  <label>Stroke Width</label>
+                  <input type="number" id="strokeWidth" min="0" max="30" value="0" />
+                </div>
+                <div class="field" id="fontSizeField">
+                  <label>Font Size</label>
+                  <input type="number" id="fontSize" min="1" max="500" value="72" />
+                </div>
+                <div class="field" id="fontWeightField">
+                  <label>Font Weight</label>
+                  <select id="fontWeight">
+                    <option value="300">300</option>
+                    <option value="400" selected>400</option>
+                    <option value="500">500</option>
+                    <option value="600">600</option>
+                    <option value="700">700</option>
+                    <option value="800">800</option>
+                    <option value="900">900</option>
+                  </select>
+                </div>
+                <div class="field" id="shadowColorField">
+                  <label>Shadow Color</label>
+                  <input type="color" id="shadowColor" value="#000000" />
+                </div>
+                <div class="field" id="shadowBlurField">
+                  <label>Shadow Blur</label>
+                  <input type="number" id="shadowBlur" min="0" max="100" value="0" />
+                </div>
+                <div class="field" id="shadowXField">
+                  <label>Shadow X</label>
+                  <input type="number" id="shadowX" min="-200" max="200" value="0" />
+                </div>
+                <div class="field" id="shadowYField">
+                  <label>Shadow Y</label>
+                  <input type="number" id="shadowY" min="-200" max="200" value="0" />
+                </div>
+                <div class="field">
+                  <label>Width</label>
+                  <input type="number" id="objWidth" min="1" value="0" />
+                </div>
+                <div class="field">
+                  <label>Height</label>
+                  <input type="number" id="objHeight" min="1" value="0" />
+                </div>
+                <div class="field">
+                  <label>X</label>
+                  <input type="number" id="objX" value="0" />
+                </div>
+                <div class="field">
+                  <label>Y</label>
+                  <input type="number" id="objY" value="0" />
+                </div>
+                <div class="field">
+                  <label>Rotation</label>
+                  <input type="number" id="objAngle" min="-360" max="360" value="0" />
+                </div>
+              </div>
+              <div class="row">
+                <button class="btn" id="toggleLockBtn">Lock</button>
+                <button class="btn" id="toggleVisibleBtn">Hide</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="statusbar">
+      <div id="statusText">Ready</div>
+      <div>Tip: double click text to edit it directly on canvas.</div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = new fabric.Canvas('editorCanvas', {
+      preserveObjectStacking: true,
+      backgroundColor: '#ffffff',
+      selection: true
+    });
+
+    let state = [];
+    let mods = 0;
+    let stateIndex = -1;
+
+    const fontsLoaded = new Set();
+    const layersList = document.getElementById('layersList');
+    const layerCount = document.getElementById('layerCount');
+    const statusText = document.getElementById('statusText');
+
+    function setStatus(text) {
+      statusText.textContent = text;
+    }
+
+    function loadGoogleFont(fontName) {
+      if (fontsLoaded.has(fontName)) return Promise.resolve();
+      return new Promise((resolve) => {
+        const id = 'font-' + fontName.replace(/\s+/g, '-');
+        if (!document.getElementById(id)) {
+          const link = document.createElement('link');
+          link.id = id;
+          link.rel = 'stylesheet';
+          link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(/\s+/g, '+')}:wght@300;400;500;600;700;800;900&display=swap`;
+          document.head.appendChild(link);
+        }
+        document.fonts.ready.then(() => {
+          fontsLoaded.add(fontName);
+          setTimeout(resolve, 200);
+        });
+      });
+    }
+
+    function assignMeta(obj, baseName) {
+      if (!obj.data) obj.data = {};
+      obj.data.name = obj.data.name || `${baseName} ${Date.now().toString().slice(-4)}`;
+      obj.data.visible = obj.visible !== false;
+      obj.data.locked = !!obj.selectable === false ? true : !!obj.data.locked;
+      return obj;
+    }
+
+    function getTypeLabel(obj) {
+      if (!obj) return 'Unknown';
+      if (obj.type === 'i-text') return 'Text';
+      if (obj.type === 'rect') return 'Rectangle';
+      if (obj.type === 'circle') return 'Circle';
+      if (obj.type === 'line') return 'Line';
+      if (obj.type === 'image') return 'Image';
+      if (obj.type === 'group') return obj.data && obj.data.kind === 'arrow' ? 'Arrow' : 'Group';
+      return obj.type;
+    }
+
+    function refreshLayers() {
+      const objects = canvas.getObjects();
+      layersList.innerHTML = '';
+      [...objects].reverse().forEach((obj, revIndex) => {
+        assignMeta(obj, getTypeLabel(obj));
+        const actualIndex = objects.length - 1 - revIndex;
+        const div = document.createElement('div');
+        div.className = 'layer-item' + (canvas.getActiveObject() === obj ? ' active' : '');
+        div.innerHTML = `
+          <div>
+            <div class="layer-name">${obj.data.name}</div>
+            <div class="layer-meta">${getTypeLabel(obj)} • ${obj.visible === false ? 'Hidden' : 'Visible'}${obj.selectable === false ? ' • Locked' : ''}</div>
+          </div>
+          <div class="layer-actions">
+            <button class="btn layer-up">↑</button>
+            <button class="btn layer-down">↓</button>
+          </div>
+        `;
+        div.addEventListener('click', (e) => {
+          if (e.target.closest('.layer-up') || e.target.closest('.layer-down')) return;
+          canvas.setActiveObject(obj);
+          canvas.requestRenderAll();
+          refreshProperties();
+          refreshLayers();
+        });
+        div.querySelector('.layer-up').addEventListener('click', (e) => {
+          e.stopPropagation();
+          canvas.bringForward(obj);
+          saveState();
+          refreshLayers();
+        });
+        div.querySelector('.layer-down').addEventListener('click', (e) => {
+          e.stopPropagation();
+          canvas.sendBackwards(obj);
+          saveState();
+          refreshLayers();
+        });
+        layersList.appendChild(div);
+      });
+      layerCount.textContent = objects.length + ' item' + (objects.length === 1 ? '' : 's');
+    }
+
+    function updateDimensionFields(obj) {
+      document.getElementById('objWidth').value = Math.round(obj.getScaledWidth());
+      document.getElementById('objHeight').value = Math.round(obj.getScaledHeight());
+      document.getElementById('objX').value = Math.round(obj.left || 0);
+      document.getElementById('objY').value = Math.round(obj.top || 0);
+      document.getElementById('objAngle').value = Math.round(obj.angle || 0);
+    }
+
+    function refreshProperties() {
+      const obj = canvas.getActiveObject();
+      const selectionFields = document.getElementById('selectionFields');
+      const noSelection = document.getElementById('noSelection');
+      if (!obj) {
+        selectionFields.classList.add('hidden');
+        noSelection.classList.remove('hidden');
+        return;
+      }
+      selectionFields.classList.remove('hidden');
+      noSelection.classList.add('hidden');
+
+      const isText = obj.type === 'i-text';
+      document.getElementById('textContentField').classList.toggle('hidden', !isText);
+      document.getElementById('fontField').classList.toggle('hidden', !isText);
+      document.getElementById('fontSizeField').classList.toggle('hidden', !isText);
+      document.getElementById('fontWeightField').classList.toggle('hidden', !isText);
+      document.getElementById('shadowColorField').classList.toggle('hidden', false);
+      document.getElementById('shadowBlurField').classList.toggle('hidden', false);
+      document.getElementById('shadowXField').classList.toggle('hidden', false);
+      document.getElementById('shadowYField').classList.toggle('hidden', false);
+
+      document.getElementById('fillColor').value = normalizeColor(obj.fill || '#000000');
+      document.getElementById('opacity').value = obj.opacity ?? 1;
+      document.getElementById('strokeColor').value = normalizeColor(obj.stroke || '#000000');
+      document.getElementById('strokeWidth').value = obj.strokeWidth || 0;
+      updateDimensionFields(obj);
+      document.getElementById('toggleLockBtn').textContent = obj.selectable === false ? 'Unlock' : 'Lock';
+      document.getElementById('toggleVisibleBtn').textContent = obj.visible === false ? 'Show' : 'Hide';
+
+      const shadow = obj.shadow || {};
+      document.getElementById('shadowColor').value = normalizeColor(shadow.color || '#000000');
+      document.getElementById('shadowBlur').value = shadow.blur || 0;
+      document.getElementById('shadowX').value = shadow.offsetX || 0;
+      document.getElementById('shadowY').value = shadow.offsetY || 0;
+
+      if (isText) {
+        document.getElementById('textValue').value = obj.text || '';
+        document.getElementById('fontFamily').value = obj.fontFamily || 'Roboto';
+        document.getElementById('fontSize').value = obj.fontSize || 72;
+        document.getElementById('fontWeight').value = String(obj.fontWeight || '400');
+      }
+    }
+
+    function normalizeColor(color) {
+      if (!color) return '#000000';
+      if (typeof color !== 'string') return '#000000';
+      if (color.startsWith('#')) {
+        if (color.length === 4) {
+          return '#' + color[1]+color[1] + color[2]+color[2] + color[3]+color[3];
+        }
+        return color;
+      }
+      const ctx = document.createElement('canvas').getContext('2d');
+      ctx.fillStyle = color;
+      const computed = ctx.fillStyle;
+      if (computed.startsWith('#')) return computed;
+      const m = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+      if (!m) return '#000000';
+      return '#' + [m[1], m[2], m[3]].map(v => Number(v).toString(16).padStart(2, '0')).join('');
+    }
+
+    function addText() {
+      loadGoogleFont('Roboto').then(() => {
+        const text = new fabric.IText('Double click to edit', {
+          left: 120,
+          top: 120,
+          fill: '#111111',
+          fontFamily: 'Roboto',
+          fontSize: 72,
+          fontWeight: '400',
+          stroke: '#000000',
+          strokeWidth: 0,
+          shadow: null
+        });
+        assignMeta(text, 'Text');
+        canvas.add(text).setActiveObject(text);
+        canvas.requestRenderAll();
+        saveState();
+        refreshLayers();
+        refreshProperties();
+        setStatus('Text layer added');
+      });
+    }
+
+    function addRect() {
+      const obj = new fabric.Rect({
+        left: 120, top: 120, width: 240, height: 140,
+        fill: '#dbeafe', stroke: '#1d4ed8', strokeWidth: 2, rx: 0, ry: 0
+      });
+      assignMeta(obj, 'Rectangle');
+      canvas.add(obj).setActiveObject(obj);
+      canvas.requestRenderAll();
+      saveState(); refreshLayers(); refreshProperties(); setStatus('Rectangle added');
+    }
+
+    function addCircle() {
+      const obj = new fabric.Circle({
+        left: 120, top: 120, radius: 80,
+        fill: '#fde68a', stroke: '#d97706', strokeWidth: 2
+      });
+      assignMeta(obj, 'Circle');
+      canvas.add(obj).setActiveObject(obj);
+      canvas.requestRenderAll();
+      saveState(); refreshLayers(); refreshProperties(); setStatus('Circle added');
+    }
+
+    function addLine() {
+      const obj = new fabric.Line([100, 100, 360, 100], {
+        left: 120, top: 120, stroke: '#111827', strokeWidth: 4
+      });
+      assignMeta(obj, 'Line');
+      canvas.add(obj).setActiveObject(obj);
+      canvas.requestRenderAll();
+      saveState(); refreshLayers(); refreshProperties(); setStatus('Line added');
+    }
+
+    function addArrow() {
+      const line = new fabric.Line([0, 0, 220, 0], { stroke: '#111827', strokeWidth: 4, originX: 'left', originY: 'center' });
+      const head = new fabric.Triangle({ width: 18, height: 18, fill: '#111827', left: 220, top: 0, angle: 90, originX: 'center', originY: 'center' });
+      const group = new fabric.Group([line, head], { left: 120, top: 120 });
+      group.data = { name: 'Arrow ' + Date.now().toString().slice(-4), kind: 'arrow', visible: true, locked: false };
+      canvas.add(group).setActiveObject(group);
+      canvas.requestRenderAll();
+      saveState(); refreshLayers(); refreshProperties(); setStatus('Arrow added');
+    }
+
+    function addImageFromFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        fabric.Image.fromURL(e.target.result, (img) => {
+          const maxW = canvas.getWidth() * 0.7;
+          const maxH = canvas.getHeight() * 0.7;
+          const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+          img.set({ left: 120, top: 120, scaleX: scale, scaleY: scale });
+          assignMeta(img, 'Image');
+          canvas.add(img).setActiveObject(img);
+          canvas.requestRenderAll();
+          saveState(); refreshLayers(); refreshProperties(); setStatus('Image added');
+        }, { crossOrigin: 'anonymous' });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updateSelectedObject() {
+      const obj = canvas.getActiveObject();
+      if (!obj) return;
+      obj.set({
+        fill: document.getElementById('fillColor').value,
+        opacity: parseFloat(document.getElementById('opacity').value),
+        stroke: document.getElementById('strokeColor').value,
+        strokeWidth: parseFloat(document.getElementById('strokeWidth').value) || 0,
+        left: parseFloat(document.getElementById('objX').value) || 0,
+        top: parseFloat(document.getElementById('objY').value) || 0,
+        angle: parseFloat(document.getElementById('objAngle').value) || 0
+      });
+
+      const width = parseFloat(document.getElementById('objWidth').value) || obj.getScaledWidth();
+      const height = parseFloat(document.getElementById('objHeight').value) || obj.getScaledHeight();
+      const baseW = obj.width || 1;
+      const baseH = obj.height || 1;
+      obj.scaleX = width / baseW;
+      obj.scaleY = height / baseH;
+
+      const shadowBlur = parseFloat(document.getElementById('shadowBlur').value) || 0;
+      const shadowX = parseFloat(document.getElementById('shadowX').value) || 0;
+      const shadowY = parseFloat(document.getElementById('shadowY').value) || 0;
+      const shadowColor = document.getElementById('shadowColor').value;
+      obj.shadow = (shadowBlur || shadowX || shadowY) ? new fabric.Shadow({
+        color: shadowColor,
+        blur: shadowBlur,
+        offsetX: shadowX,
+        offsetY: shadowY
+      }) : null;
+
+      if (obj.type === 'i-text') {
+        obj.set({
+          text: document.getElementById('textValue').value,
+          fontSize: parseFloat(document.getElementById('fontSize').value) || 72,
+          fontWeight: document.getElementById('fontWeight').value,
+        });
+        const newFont = document.getElementById('fontFamily').value;
+        loadGoogleFont(newFont).then(() => {
+          obj.set('fontFamily', newFont);
+          canvas.requestRenderAll();
+          saveState(); refreshLayers(); refreshProperties();
+        });
+      }
+      obj.setCoords();
+      canvas.requestRenderAll();
+      saveState(); refreshLayers(); refreshProperties();
+    }
+
+    function duplicateSelected() {
+      const obj = canvas.getActiveObject();
+      if (!obj) return;
+      obj.clone((cloned) => {
+        cloned.set({ left: (obj.left || 0) + 20, top: (obj.top || 0) + 20 });
+        if (cloned.data) cloned.data.name = (obj.data?.name || getTypeLabel(obj)) + ' Copy';
+        else assignMeta(cloned, getTypeLabel(obj));
+        canvas.add(cloned).setActiveObject(cloned);
+        canvas.requestRenderAll();
+        saveState(); refreshLayers(); refreshProperties(); setStatus('Layer duplicated');
+      });
+    }
+
+    function deleteSelected() {
+      const obj = canvas.getActiveObject();
+      if (!obj) return;
+      canvas.remove(obj);
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      saveState(); refreshLayers(); refreshProperties(); setStatus('Layer deleted');
+    }
+
+    function toggleLock() {
+      const obj = canvas.getActiveObject();
+      if (!obj) return;
+      const locked = obj.selectable === false;
+      obj.set({ selectable: locked, evented: locked, hasControls: locked, lockMovementX: !locked, lockMovementY: !locked });
+      if (!obj.data) obj.data = {};
+      obj.data.locked = !locked;
+      canvas.requestRenderAll();
+      saveState(); refreshLayers(); refreshProperties();
+    }
+
+    function toggleVisible() {
+      const obj = canvas.getActiveObject();
+      if (!obj) return;
+      obj.visible = obj.visible === false ? true : false;
+      if (!obj.data) obj.data = {};
+      obj.data.visible = obj.visible;
+      if (obj.visible === false) canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      saveState(); refreshLayers(); refreshProperties();
+    }
+
+    function applyCanvasSettings() {
+      const width = parseInt(document.getElementById('canvasWidth').value, 10) || 1200;
+      const height = parseInt(document.getElementById('canvasHeight').value, 10) || 800;
+      const bg = document.getElementById('canvasBg').value;
+      canvas.setWidth(width);
+      canvas.setHeight(height);
+      canvas.backgroundColor = bg;
+      canvas.requestRenderAll();
+      saveState();
+      setStatus(`Canvas updated to ${width} × ${height}`);
+    }
+
+    function newCanvas() {
+      if (!confirm('Clear the canvas and start a new project?')) return;
+      canvas.clear();
+      canvas.backgroundColor = '#ffffff';
+      canvas.setWidth(1200);
+      canvas.setHeight(800);
+      document.getElementById('canvasWidth').value = 1200;
+      document.getElementById('canvasHeight').value = 800;
+      document.getElementById('canvasBg').value = '#ffffff';
+      canvas.requestRenderAll();
+      saveState(); refreshLayers(); refreshProperties(); setStatus('New canvas created');
+    }
+
+    function exportPNG() {
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL({ format: 'png', multiplier: 1 });
+      link.download = 'mike-image-editor-export.png';
+      link.click();
+      setStatus('PNG exported');
+    }
+
+    function saveProject() {
+      const json = JSON.stringify(canvas.toJSON(['data']), null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mike-image-editor-project.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatus('Project JSON saved');
+    }
+
+    function loadProjectFile(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const raw = e.target.result;
+        canvas.loadFromJSON(raw, async () => {
+          const objs = canvas.getObjects();
+          for (const obj of objs) {
+            if (obj.type === 'i-text' && obj.fontFamily) await loadGoogleFont(obj.fontFamily);
+          }
+          canvas.requestRenderAll();
+          saveState(); refreshLayers(); refreshProperties(); setStatus('Project loaded');
+        });
+      };
+      reader.readAsText(file);
+    }
+
+    function saveState() {
+      if (mods) {
+        mods = 0;
+        return;
+      }
+      const json = JSON.stringify(canvas.toJSON(['data']));
+      if (stateIndex >= 0 && state[stateIndex] === json) return;
+      state = state.slice(0, stateIndex + 1);
+      state.push(json);
+      stateIndex = state.length - 1;
+    }
+
+    function undo() {
+      if (stateIndex <= 0) return;
+      stateIndex--;
+      mods++;
+      canvas.loadFromJSON(state[stateIndex], () => {
+        canvas.requestRenderAll(); refreshLayers(); refreshProperties(); setStatus('Undo');
+      });
+    }
+
+    function redo() {
+      if (stateIndex >= state.length - 1) return;
+      stateIndex++;
+      mods++;
+      canvas.loadFromJSON(state[stateIndex], () => {
+        canvas.requestRenderAll(); refreshLayers(); refreshProperties(); setStatus('Redo');
+      });
+    }
+
+    document.getElementById('addTextBtn').addEventListener('click', addText);
+    document.getElementById('addRectBtn').addEventListener('click', addRect);
+    document.getElementById('addCircleBtn').addEventListener('click', addCircle);
+    document.getElementById('addLineBtn').addEventListener('click', addLine);
+    document.getElementById('addArrowBtn').addEventListener('click', addArrow);
+    document.getElementById('addImageBtn').addEventListener('click', () => document.getElementById('imageInput').click());
+    document.getElementById('imageInput').addEventListener('change', (e) => addImageFromFile(e.target.files[0]));
+
+    document.getElementById('duplicateBtn').addEventListener('click', duplicateSelected);
+    document.getElementById('deleteBtn').addEventListener('click', deleteSelected);
+    document.getElementById('bringFrontBtn').addEventListener('click', () => { const obj = canvas.getActiveObject(); if (obj) { canvas.bringToFront(obj); saveState(); refreshLayers(); } });
+    document.getElementById('sendBackBtn').addEventListener('click', () => { const obj = canvas.getActiveObject(); if (obj) { canvas.sendToBack(obj); saveState(); refreshLayers(); } });
+    document.getElementById('toggleLockBtn').addEventListener('click', toggleLock);
+    document.getElementById('toggleVisibleBtn').addEventListener('click', toggleVisible);
+
+    document.getElementById('newCanvasBtn').addEventListener('click', newCanvas);
+    document.getElementById('exportPngBtn').addEventListener('click', exportPNG);
+    document.getElementById('saveProjectBtn').addEventListener('click', saveProject);
+    document.getElementById('loadProjectBtn').addEventListener('click', () => document.getElementById('projectFileInput').click());
+    document.getElementById('projectFileInput').addEventListener('change', (e) => loadProjectFile(e.target.files[0]));
+    document.getElementById('applyCanvasBtn').addEventListener('click', applyCanvasSettings);
+    document.getElementById('undoBtn').addEventListener('click', undo);
+    document.getElementById('redoBtn').addEventListener('click', redo);
+
+    [
+      'textValue','fontFamily','fillColor','opacity','strokeColor','strokeWidth','fontSize','fontWeight','shadowColor','shadowBlur','shadowX','shadowY','objWidth','objHeight','objX','objY','objAngle'
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', updateSelectedObject);
+      el.addEventListener('change', updateSelectedObject);
+    });
+
+    canvas.on('selection:created', () => { refreshLayers(); refreshProperties(); });
+    canvas.on('selection:updated', () => { refreshLayers(); refreshProperties(); });
+    canvas.on('selection:cleared', () => { refreshLayers(); refreshProperties(); });
+    canvas.on('object:modified', () => { refreshLayers(); refreshProperties(); saveState(); });
+    canvas.on('object:added', () => { refreshLayers(); });
+    canvas.on('object:removed', () => { refreshLayers(); });
+    canvas.on('text:changed', () => { refreshProperties(); saveState(); });
+    canvas.on('mouse:down', () => setStatus('Editing canvas'));
+
+    document.addEventListener('keydown', (e) => {
+      const active = document.activeElement;
+      const typing = active && ['INPUT','TEXTAREA','SELECT'].includes(active.tagName);
+      if (!typing && (e.key === 'Delete' || e.key === 'Backspace')) {
+        e.preventDefault();
+        deleteSelected();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        duplicateSelected();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo(); else undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
+      }
+    });
+
+    document.getElementById('canvasWidth').value = canvas.getWidth();
+    document.getElementById('canvasHeight').value = canvas.getHeight();
+    document.getElementById('canvasBg').value = '#ffffff';
+
+    saveState();
+    refreshLayers();
+    refreshProperties();
+    setStatus('Ready');
+  </script>
+</body>
+</html>
