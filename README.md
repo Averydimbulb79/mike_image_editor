@@ -161,11 +161,11 @@ The project is structured into progressive phases and version milestones:
 ---
 
 ## Project Structure
-/index.html
-/css/
-/js/
-/assets/
-/docs/
+- /index.html
+- /css/
+- /js/
+- /assets/
+- /docs/
 
 
 ---
